@@ -1,10 +1,5 @@
 #include "Person.h"
 #include <iostream>
-#include <limits> 
-#include <regex> 
-#include <sstream>
-#include <fstream>
-
 
 void Person::getName() {
     std::cout << "Enter name: ";
@@ -24,6 +19,7 @@ void Person::getAddress() {
         std::getline(std::cin >> std::ws, address);
     }
 }
+
 
 void Person::getEmail() {
     std::cout << "Enter email: ";
@@ -91,7 +87,15 @@ void Librarian::getSalary() {
     }
 }
 
-//void Librarian::issueBook(int memberID, int bookID){}
+Date  Librarian::issueBook() {
+        std::cout << "Librarian issuing a book..." << std::endl;
+        // Create a Date object, which will set the current date in the constructor
+        Date currentDate;
+        std::cout << "Current Date: " << currentDate.getDay() << '-' << currentDate.getMonth() << '-' << currentDate.getYear() << std::endl;
+        // Return the current date
+        return currentDate;
+    }
+
 
 void Librarian::setSalary(double newSalary) {
     if (newSalary >= 0) {
@@ -101,48 +105,16 @@ void Librarian::setSalary(double newSalary) {
     }
 }
 
-void Person::displayMemberInfo() {
-    std::ifstream inputFile("Member_info.csv");
-    if (inputFile.is_open()) {
-        std::string line;
-        std::string lastLine;
-        while (std::getline(inputFile, line)) {
-            lastLine = line;
-        }
-        if (!lastLine.empty()) {
-            std::istringstream iss(lastLine);
-            std::string name, address, email, memberID;
-
-            // Assuming the format is: name,address,email,memberID
-            std::getline(iss, name, ',');
-            std::getline(iss, address, ',');
-            std::getline(iss, email, ',');
-            std::getline(iss, memberID, ',');
-
-            std::cout << "New Member Information:\n"
-                      << "Name: " << name << "\n"
-                      << "Address: " << address << "\n"
-                      << "Email: " << email << "\n"
-                      << "MemberID: " << memberID << std::endl;
-        } else {
-            std::cerr << "No member information found." << std::endl;
-        }
-        inputFile.close();
-    } else {
-        std::cerr << "Unable to open the CSV file for reading." << std::endl;
-    }
-}
-
-
-
 void Librarian::addMember() {
     std::cout << "New Library member: " << std::endl;
     getName();
     getAddress();
     getEmail();
 
-    Member member; // Create an instance of Member
-    std::string memberId = member.getMemberID();
+    // Generate random 4-digit number and convert it to a string
+    std::srand(static_cast<unsigned int>(std::time(nullptr)));
+    int random4DigitNumber = std::rand() % 9000 + 1000;
+    std::string memberId = std::to_string(random4DigitNumber);
 
     std::ofstream outputFile("Member_info.csv", std::ios::app);
     if (outputFile.is_open()) {
@@ -151,20 +123,70 @@ void Librarian::addMember() {
         std::cout << "Information saved to Member_info.csv" << std::endl;
 
         // Display member information after saving
-        displayMemberInfo();
+        std::ifstream inputFile("Member_info.csv");
+        if (inputFile.is_open()) {
+            std::string line;
+            std::string lastLine;
+            while (std::getline(inputFile, line)) {
+                lastLine = line;
+            }
+            if (!lastLine.empty()) {
+                std::istringstream iss(lastLine);
+                std::string value;
+                std::cout << "New Member Information:\n";
+                std::cout << "Name: ";
+                std::getline(std::getline(iss, value, ','), name);
+                std::cout << "Address: ";
+                std::getline(iss, value, ',');
+                std::cout << value << std::endl;
+                std::cout << "Email: ";
+                std::getline(iss, value, ',');
+                std::cout << value << std::endl;
+                std::cout << "MemberID: ";
+                std::getline(iss, memberId, ',');
+                std::cout << memberId << std::endl;
+            } else {
+                std::cerr << "No member information found." << std::endl;
+            }
+            inputFile.close();
+        } else {
+            std::cerr << "Unable to open the CSV file for reading." << std::endl;
+        }
     } else {
         std::cerr << "Unable to open the CSV file for writing." << std::endl;
     }
 }
 
 
+//std::string Member::getMemberID() const {}
 
-std::string Member::getMemberID() const {
-    std::srand(static_cast<unsigned int>(std::time(nullptr)));
-    // Generate a random 4-digit number
-    int random4DigitNumber = std::rand() % 9000 + 1000;
-    // Convert the random number to a string and return it as the member ID
-    return std::to_string(random4DigitNumber);
+
+
+Date::Date() {
+    time_t t = time(0);
+    struct tm* now = localtime(&t);
+    day = now->tm_mday;
+    month = now->tm_mon + 1;  // tm_mon is 0-based
+    year = now->tm_year + 1900;  // tm_year is years since 1900
+}
+
+Date::Date(int day, int month, int year) : day(day), month(month), year(year) {}
+
+int Date::getDay() const {
+    return day;
+}
+
+int Date::getMonth() const {
+    return month;
+}
+
+int Date::getYear() const {
+    return year;
+}
+
+std::string Date::getFormattedDueDate() const {
+    // Format the date as a string (e.g., "DD-MM-YYYY")
+    return std::to_string(day) + '-' + std::to_string(month) + '-' + std::to_string(year);
 }
 
 
@@ -188,6 +210,3 @@ bool checkStaffID(const std::string& filename, int staffID) {
     }
     return false; // Staff ID not found
 }
-
-
-
