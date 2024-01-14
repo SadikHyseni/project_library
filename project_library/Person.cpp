@@ -1,6 +1,8 @@
 #include "Person.h"
 #include <iostream>
+#include <vector>
 
+//function to get the name of the person
 void Person::getName() {
     std::cout << "Enter name: ";
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
@@ -11,6 +13,7 @@ void Person::getName() {
     }
 }
 
+//function to get the address of a person
 void Person::getAddress() {
     std::cout << "Enter address: ";
     std::getline(std::cin >> std::ws, address);
@@ -20,7 +23,7 @@ void Person::getAddress() {
     }
 }
 
-
+//function to get the email of the person
 void Person::getEmail() {
     std::cout << "Enter email: ";
     while (true) {
@@ -33,6 +36,7 @@ void Person::getEmail() {
     }
 }
 
+//validation for name ,email,address
 bool Person::isValidString(const std::string& str) {
     // Basic check for only alphanumeric characters and spaces
     return std::all_of(str.begin(), str.end(), [](char c) {
@@ -47,6 +51,189 @@ bool Person::isValidEmail(const std::string& email) {
 }
 
 
+//disaplyborroedbooks by memberid
+void Librarian::displayBorrowedBooks(int memberID) {
+    const std::string csvFilePath = "booksLoaned.csv";
+    std::ifstream inputFile(csvFilePath);
+
+    if (!inputFile.is_open()) {
+        std::cerr << "Error opening file: " << csvFilePath << std::endl;
+        return;
+    }
+
+    std::cout << "Books borrowed by MemberID " << memberID << ":" << std::endl;
+
+    std::string line;
+    while (std::getline(inputFile, line)) {
+        std::istringstream iss(line);
+        std::vector<std::string> row;
+
+        // Split the line into tokens based on the comma (',') delimiter
+        std::string token;
+        while (std::getline(iss, token, ',')) {
+            row.push_back(token);
+        }
+
+        // Check if the line contains the specified memberID
+        if (row.size() >= 1) {
+            int currentMemberID;
+            try {
+                currentMemberID = std::stoi(row[0]);
+            }
+            catch (const std::exception& e) {
+                continue;  // Skip this line 
+            }
+            if (currentMemberID == memberID) {
+                // Get Book ID and Book Name
+                int bookID;
+                try {
+                    bookID = std::stoi(row[2]);  // Assuming Book ID is in the third column
+                }
+                catch (const std::exception& e) {
+                    continue;  // Skip this line if Book ID is not a valid integer
+                }
+
+                std::string bookName = row[3];  // Assuming Book Name is in the fourth column
+
+                std::string givendate = row[1];
+
+                std::cout << bookName << " with book ID " << bookID << " was issued at " << givendate << std::endl;
+            }
+        }
+    }
+
+    inputFile.close();
+}
+
+//return book by memberid and bookid read and write to csv file
+void Librarian::returnBook(int memberID, int bookID) {
+    // Specify the path to your CSV file
+    const std::string csvFilePath = "booksLoaned.csv";
+
+    // Read the CSV file into a vector of vectors
+    std::ifstream inputFile(csvFilePath);
+    std::vector<std::vector<std::string>> csvData;
+
+    if (!inputFile.is_open()) {
+        std::cerr << "Error opening file: " << csvFilePath << std::endl;
+        return;
+    }
+
+    try {
+        std::string line;
+        while (std::getline(inputFile, line)) {
+            std::istringstream iss(line);
+            std::vector<std::string> row;
+
+            // Split the line into tokens based on the comma (',') delimiter
+            std::string token;
+            while (std::getline(iss, token, ',')) {
+                row.push_back(token);
+            }
+
+            // Check if the line contains the specified memberID and bookID
+            if (row.size() >= 3) {
+                int currentMemberID, currentBookID;
+                try {
+                    currentMemberID = std::stoi(row[0]);
+                    currentBookID = std::stoi(row[2]);
+                } catch (const std::exception &e) {
+                    std::cerr << "Exception during stoi: " << e.what() << std::endl;
+                    continue;  // Skip this line if stoi fails
+                }
+
+                if (currentMemberID == memberID && currentBookID == bookID) {
+                    // Book found, skip this line
+                   std::cout << "Book has successfully returned." << std::endl;
+                    continue;
+                } else {
+                    // Keep this line
+                    csvData.push_back(row);
+                }
+            }
+        }
+
+        inputFile.close();
+
+        // Write the modified content back to the file
+        std::ofstream outputFile(csvFilePath);
+        for (const auto &row : csvData) {
+            for (const auto &item : row) {
+                outputFile << item << ",";
+            }
+            outputFile << "\n";
+        }
+    } catch (const std::exception &e) {
+        std::cerr << "Exception: " << e.what() << std::endl;
+        return;
+    }
+}
+
+//function to calculate time for overduebooks
+void Librarian::calcFine(int memberID) {
+    const std::string csvFilePath = "booksLoaned.csv";
+
+    // Open the CSV file
+    std::ifstream inputFile(csvFilePath);
+    if (!inputFile.is_open()) {
+        std::cerr << "Error opening file: " << csvFilePath << std::endl;
+        return;
+    }
+
+    // Get the current date
+    auto now = std::chrono::system_clock::now();
+
+    // Read each line from the CSV file
+    std::string line;
+    while (std::getline(inputFile, line)) {
+        std::istringstream iss(line);
+        std::vector<std::string> row;
+
+        // Split the line into tokens based on the comma (',') delimiter
+        std::string token;
+        while (std::getline(iss, token, ',')) {
+            row.push_back(token);
+        }
+
+        // Check if the line contains the specified memberID
+        if (row.size() >= 2) { // Assuming issueDate is in the second column
+            int currentMemberID;
+            std::string issueDateString = row[1]; // Assuming issueDate is in the second column
+
+            std::tm issueDate = {};
+            std::istringstream(issueDateString) >> std::get_time(&issueDate, "%m-%d-%Y");
+
+            if (std::istringstream(issueDateString).fail()) {
+                std::cerr << "Error parsing date: " << issueDateString << std::endl;
+                continue;
+            }
+
+            try {
+                currentMemberID = std::stoi(row[0]);
+            } catch (const std::exception& e) {
+                continue;  // Skip this line if conversion to integer fails
+            }
+
+            if (currentMemberID == memberID) {
+                // Calculate the duration between issueDate and currentDate
+                auto issueTime = std::chrono::system_clock::from_time_t(std::mktime(&issueDate));
+                auto duration = std::chrono::duration_cast<std::chrono::hours>(now - issueTime);
+
+                // Check if it has passed 3 days from the issueDate
+                if (duration.count() / 24 > 3) { // Convert hours to days
+                    // Calculate the fine as a whole number of pounds
+                    int fine = static_cast<int>(duration.count() / 24 - 3);
+                    std::cout << "MemberID " << memberID << " owes " << fine << " pounds in fines." << std::endl;
+                } else {
+                    std::cout << "MemberID " << memberID << " has no fines within the initial 3 days." << std::endl;
+                }
+            }
+        }
+    }
+}
+
+
+//function to get staffid
 void Librarian::getStaffID() {
     while (true) {
         std::cout << "Enter staff ID: ";
@@ -64,6 +251,7 @@ void Librarian::getStaffID() {
     }
 }
 
+//function to check staff id valid
 void Librarian::setStaffID(int newStaffID) {
     if (newStaffID > 0) {
         staffID = newStaffID;
@@ -87,7 +275,8 @@ void Librarian::getSalary() {
     }
 }
 
-Date  Librarian::issueBook() {
+//return date of issue book
+Date Librarian::issueBook() {
         std::cout << "Librarian issuing a book..." << std::endl;
         // Create a Date object, which will set the current date in the constructor
         Date currentDate;
@@ -105,6 +294,7 @@ void Librarian::setSalary(double newSalary) {
     }
 }
 
+//function to add new member and save to csv file
 void Librarian::addMember() {
     std::cout << "New Library member: " << std::endl;
     getName();
@@ -157,18 +347,17 @@ void Librarian::addMember() {
     }
 }
 
-
-//std::string Member::getMemberID() const {}
-
-
-
+//function for current date
 Date::Date() {
-    time_t t = time(0);
-    struct tm* now = localtime(&t);
-    day = now->tm_mday;
-    month = now->tm_mon + 1;  // tm_mon is 0-based
-    year = now->tm_year + 1900;  // tm_year is years since 1900
+    auto now = std::chrono::system_clock::now();
+    time_t t = std::chrono::system_clock::to_time_t(now);
+    tm* localTime = localtime(&t);
+
+    day = localTime->tm_mday;
+    month = localTime->tm_mon + 1;  // tm_mon is 0-based
+    year = localTime->tm_year + 1900;  // tm_year is years since 1900
 }
+
 
 Date::Date(int day, int month, int year) : day(day), month(month), year(year) {}
 
@@ -189,8 +378,7 @@ std::string Date::getFormattedDueDate() const {
     return std::to_string(day) + '-' + std::to_string(month) + '-' + std::to_string(year);
 }
 
-
-
+//validation for satff id
 bool checkStaffID(const std::string& filename, int staffID) {
     std::ifstream inputFile(filename);
     if (inputFile.is_open()) {
@@ -210,3 +398,7 @@ bool checkStaffID(const std::string& filename, int staffID) {
     }
     return false; // Staff ID not found
 }
+
+
+
+
